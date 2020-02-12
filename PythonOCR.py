@@ -3,13 +3,14 @@ import pytesseract
 import os
 from os.path import join
 import datetime
+from openpyxl import load_workbook
 
+
+# Define path for xlsx sheet
+XslxPath = r''
 
 # Define path for files ready for processing
 path = r''
-
-# create list containing each file in the defined path
-fileList = [x for x in os.listdir(path) if os.path.isfile(join(path, x))]
 
 # Define Paths for processed files
 
@@ -17,6 +18,16 @@ ProcessedPdfPath = ''
 ErrorPdfPath = ''
 ProcessedImagePath = ''
 ErrorImagePath = ''
+
+
+# load xlsx workbook for logging valid processed images
+wb = load_workbook(XslxPath)
+ws = wb.active
+lastRow = ws.max_row + 1
+
+# create list containing each file in the defined path
+fileList = [x for x in os.listdir(path) if os.path.isfile(join(path, x))]
+
 # Optional. Set the pytesseract source folder if pytesseract is not in the PATH variable
 pytesseract.pytesseract.tesseract_cmd = r''
 
@@ -39,7 +50,6 @@ for files in fileList:
     img1 = img.crop((left, top, right, bottom))
     img1.show()
 
-
     # start Tesseract process
     try:
 
@@ -59,9 +69,14 @@ for files in fileList:
 
                 continue
 
-            # if result is valid, save to processed folder
+            # if result is valid, save to processed folder and add to xlsx sheet
             img.save(ProcessedPdfPath + result + '.pdf')
             os.rename(path + files, ProcessedImagePath + files)
+
+            # Define cell address
+            ws['A' + str(lastRow)] = result
+            # increment row number
+            lastRow = lastRow + 1
 
         # If result is Not 8 characters long and/or does not start with int 2
         else:
@@ -74,3 +89,7 @@ for files in fileList:
         img.save(ErrorPdfPath + 'noName-' + currentDate + '.pdf')
         os.rename(path + files, ErrorImagePath + files)
         continue
+
+# Save and close xlsx sheet
+wb.save(XslxPath)
+wb.close()
